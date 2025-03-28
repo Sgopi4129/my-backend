@@ -1,0 +1,306 @@
+2025-03-28 11:20:29,054 - INFO - Database connection successful.
+2025-03-28 11:20:29,069 - INFO - Table 'insights' created with updated schema.
+2025-03-28 11:20:29,078 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 11:20:29,120 - INFO - Database connection successful.
+2025-03-28 11:20:29,275 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 11:20:29,307 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 11:20:29,307 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 11:20:29,308 - INFO -  * Restarting with stat
+2025-03-28 11:20:29,615 - INFO - Database connection successful.
+2025-03-28 11:20:29,670 - INFO - Table 'insights' created with updated schema.
+2025-03-28 11:20:29,683 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 11:20:29,726 - INFO - Database connection successful.
+2025-03-28 11:20:29,881 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 11:20:29,896 - WARNING -  * Debugger is active!
+2025-03-28 11:20:29,899 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 11:21:27,675 - INFO - 127.0.0.1 - - [28/Mar/2025 11:21:27] "[33mGET / HTTP/1.1[0m" 404 -
+2025-03-28 11:21:32,970 - INFO - Database connection successful.
+2025-03-28 11:21:32,977 - INFO - Returning 1000 records from database.
+2025-03-28 11:21:32,991 - INFO - 127.0.0.1 - - [28/Mar/2025 11:21:32] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:43:30,386 - INFO - Database connection successful.
+2025-03-28 11:43:30,437 - INFO - Table 'insights' created with updated schema.
+2025-03-28 11:43:30,446 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 11:43:30,490 - INFO - Database connection successful.
+2025-03-28 11:43:30,655 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 11:43:30,688 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 11:43:30,688 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 11:43:30,689 - INFO -  * Restarting with stat
+2025-03-28 11:43:31,122 - INFO - Database connection successful.
+2025-03-28 11:43:31,155 - INFO - Table 'insights' created with updated schema.
+2025-03-28 11:43:31,168 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 11:43:31,214 - INFO - Database connection successful.
+2025-03-28 11:43:31,372 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 11:43:31,389 - WARNING -  * Debugger is active!
+2025-03-28 11:43:31,396 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 11:44:33,924 - INFO - Database connection successful.
+2025-03-28 11:44:33,924 - INFO - Database connection successful.
+2025-03-28 11:44:33,944 - INFO - Returning 1000 records from database.
+2025-03-28 11:44:33,945 - INFO - Returning 1000 records from database.
+2025-03-28 11:44:33,965 - INFO - 127.0.0.1 - - [28/Mar/2025 11:44:33] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:44:33,978 - INFO - 127.0.0.1 - - [28/Mar/2025 11:44:33] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:50:03,946 - INFO - Database connection successful.
+2025-03-28 11:50:03,952 - INFO - Database connection successful.
+2025-03-28 11:50:03,961 - INFO - Returning 1000 records from database.
+2025-03-28 11:50:03,961 - INFO - Returning 1000 records from database.
+2025-03-28 11:50:03,976 - INFO - 127.0.0.1 - - [28/Mar/2025 11:50:03] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:50:03,991 - INFO - 127.0.0.1 - - [28/Mar/2025 11:50:03] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:55:07,077 - INFO - Database connection successful.
+2025-03-28 11:55:07,085 - INFO - Returning 1000 records from database.
+2025-03-28 11:55:07,101 - INFO - 127.0.0.1 - - [28/Mar/2025 11:55:07] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 11:55:07,170 - INFO - Database connection successful.
+2025-03-28 11:55:07,178 - INFO - Returning 1000 records from database.
+2025-03-28 11:55:07,193 - INFO - 127.0.0.1 - - [28/Mar/2025 11:55:07] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 12:50:12,646 - INFO - Database connection successful.
+2025-03-28 12:50:12,830 - INFO - Table 'insights' created with updated schema.
+2025-03-28 12:50:12,863 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 12:50:12,947 - INFO - Database connection successful.
+2025-03-28 12:50:13,445 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 12:50:13,596 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 12:50:13,596 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 12:50:13,599 - INFO -  * Restarting with stat
+2025-03-28 12:50:14,704 - INFO - Database connection successful.
+2025-03-28 12:50:14,768 - INFO - Table 'insights' created with updated schema.
+2025-03-28 12:50:14,800 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 12:50:14,952 - INFO - Database connection successful.
+2025-03-28 12:50:15,576 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 12:50:15,616 - WARNING -  * Debugger is active!
+2025-03-28 12:50:15,624 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 13:56:57,927 - INFO - Database connection successful.
+2025-03-28 13:56:58,024 - INFO - Table 'insights' created with updated schema.
+2025-03-28 13:56:58,040 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 13:56:58,118 - INFO - Database connection successful.
+2025-03-28 13:56:58,456 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 13:56:58,527 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 13:56:58,528 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 13:56:58,530 - INFO -  * Restarting with stat
+2025-03-28 13:56:59,025 - INFO - Database connection successful.
+2025-03-28 13:56:59,045 - INFO - Table 'insights' created with updated schema.
+2025-03-28 13:56:59,057 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 13:56:59,123 - INFO - Database connection successful.
+2025-03-28 13:56:59,429 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 13:56:59,452 - WARNING -  * Debugger is active!
+2025-03-28 13:56:59,461 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 14:08:19,882 - INFO - 127.0.0.1 - - [28/Mar/2025 14:08:19] "[33mGET /api/data HTTP/1.1[0m" 404 -
+2025-03-28 14:08:20,100 - INFO - 127.0.0.1 - - [28/Mar/2025 14:08:20] "[33mGET /api/data HTTP/1.1[0m" 404 -
+2025-03-28 14:08:52,895 - INFO - 127.0.0.1 - - [28/Mar/2025 14:08:52] "[33mGET /api/data HTTP/1.1[0m" 404 -
+2025-03-28 14:08:53,155 - INFO - 127.0.0.1 - - [28/Mar/2025 14:08:53] "[33mGET /api/data HTTP/1.1[0m" 404 -
+2025-03-28 14:13:03,604 - INFO - Database connection successful.
+2025-03-28 14:13:03,687 - INFO - Table 'insights' created with updated schema.
+2025-03-28 14:13:03,706 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 14:13:03,816 - INFO - Database connection successful.
+2025-03-28 14:13:04,319 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 14:13:04,390 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 14:13:04,390 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 14:13:04,393 - INFO -  * Restarting with stat
+2025-03-28 14:13:05,226 - INFO - Database connection successful.
+2025-03-28 14:13:05,258 - INFO - Table 'insights' created with updated schema.
+2025-03-28 14:13:05,282 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 14:13:05,397 - INFO - Database connection successful.
+2025-03-28 14:13:05,984 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 14:13:06,051 - WARNING -  * Debugger is active!
+2025-03-28 14:13:06,068 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 14:13:29,420 - INFO - Database connection successful.
+2025-03-28 14:13:29,491 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:13:29,505 - INFO - 127.0.0.1 - - [28/Mar/2025 14:13:29] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:13:29,619 - INFO - Database connection successful.
+2025-03-28 14:13:29,638 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:13:29,644 - INFO - 127.0.0.1 - - [28/Mar/2025 14:13:29] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:16:30,658 - INFO - Database connection successful.
+2025-03-28 14:16:30,694 - INFO - Returning 1000 records from database.
+2025-03-28 14:16:30,719 - INFO - 127.0.0.1 - - [28/Mar/2025 14:16:30] "GET /api/insights HTTP/1.1" 200 -
+2025-03-28 14:16:31,281 - INFO - 127.0.0.1 - - [28/Mar/2025 14:16:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-03-28 14:16:37,970 - INFO - Database connection successful.
+2025-03-28 14:16:37,997 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:16:38,002 - INFO - 127.0.0.1 - - [28/Mar/2025 14:16:38] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:19:08,921 - INFO - Database connection successful.
+2025-03-28 14:19:08,964 - INFO - Table 'insights' created with updated schema.
+2025-03-28 14:19:08,981 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 14:19:09,057 - INFO - Database connection successful.
+2025-03-28 14:19:09,443 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 14:19:09,504 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-03-28 14:19:09,504 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-28 14:19:09,506 - INFO -  * Restarting with stat
+2025-03-28 14:19:10,068 - INFO - Database connection successful.
+2025-03-28 14:19:10,103 - INFO - Table 'insights' created with updated schema.
+2025-03-28 14:19:10,118 - INFO - Loaded 1000 records from D:\dav\backend\data.json
+2025-03-28 14:19:10,186 - INFO - Database connection successful.
+2025-03-28 14:19:10,544 - INFO - Inserted 1000 records from JSON. Total records in table: 1000
+2025-03-28 14:19:10,571 - WARNING -  * Debugger is active!
+2025-03-28 14:19:10,575 - INFO -  * Debugger PIN: 309-646-195
+2025-03-28 14:19:31,295 - INFO - Database connection successful.
+2025-03-28 14:19:31,314 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:19:31,323 - INFO - 127.0.0.1 - - [28/Mar/2025 14:19:31] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:19:59,651 - INFO - Database connection successful.
+2025-03-28 14:19:59,682 - INFO - Returning 961 records for dashboard.
+2025-03-28 14:19:59,691 - INFO - 127.0.0.1 - - [28/Mar/2025 14:19:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,95&intensity_min=0&intensity_max=95 HTTP/1.1" 200 -
+2025-03-28 14:20:00,083 - INFO - Database connection successful.
+2025-03-28 14:20:00,109 - INFO - Returning 961 records for dashboard.
+2025-03-28 14:20:00,117 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:00] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,89&intensity_min=0&intensity_max=89 HTTP/1.1" 200 -
+2025-03-28 14:20:00,211 - INFO - Database connection successful.
+2025-03-28 14:20:00,236 - INFO - Returning 940 records for dashboard.
+2025-03-28 14:20:00,247 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:00] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,46&intensity_min=0&intensity_max=46 HTTP/1.1" 200 -
+2025-03-28 14:20:00,296 - INFO - Database connection successful.
+2025-03-28 14:20:00,320 - INFO - Returning 938 records for dashboard.
+2025-03-28 14:20:00,327 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:00] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,39&intensity_min=0&intensity_max=39 HTTP/1.1" 200 -
+2025-03-28 14:20:02,551 - INFO - Database connection successful.
+2025-03-28 14:20:02,566 - INFO - Returning 938 records for dashboard.
+2025-03-28 14:20:02,572 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,38&intensity_min=0&intensity_max=38 HTTP/1.1" 200 -
+2025-03-28 14:20:02,617 - INFO - Database connection successful.
+2025-03-28 14:20:02,638 - INFO - Returning 898 records for dashboard.
+2025-03-28 14:20:02,646 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,18&intensity_min=0&intensity_max=18 HTTP/1.1" 200 -
+2025-03-28 14:20:02,646 - INFO - Database connection successful.
+2025-03-28 14:20:02,663 - INFO - Returning 898 records for dashboard.
+2025-03-28 14:20:02,669 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,19&intensity_min=0&intensity_max=19 HTTP/1.1" 200 -
+2025-03-28 14:20:02,720 - INFO - Database connection successful.
+2025-03-28 14:20:02,720 - INFO - Database connection successful.
+2025-03-28 14:20:02,733 - INFO - Returning 459 records for dashboard.
+2025-03-28 14:20:02,737 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,7&intensity_min=0&intensity_max=7 HTTP/1.1" 200 -
+2025-03-28 14:20:02,738 - INFO - Returning 895 records for dashboard.
+2025-03-28 14:20:02,744 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,16&intensity_min=0&intensity_max=16 HTTP/1.1" 200 -
+2025-03-28 14:20:02,767 - INFO - Database connection successful.
+2025-03-28 14:20:02,778 - INFO - Returning 146 records for dashboard.
+2025-03-28 14:20:02,780 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:02] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,3&intensity_min=0&intensity_max=3 HTTP/1.1" 200 -
+2025-03-28 14:20:10,524 - INFO - Database connection successful.
+2025-03-28 14:20:10,559 - INFO - Returning 244 records for dashboard.
+2025-03-28 14:20:10,563 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:10] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,5&intensity_min=0&intensity_max=5 HTTP/1.1" 200 -
+2025-03-28 14:20:10,572 - INFO - Database connection successful.
+2025-03-28 14:20:10,604 - INFO - Returning 940 records for dashboard.
+2025-03-28 14:20:10,611 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:10] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:14,525 - INFO - Database connection successful.
+2025-03-28 14:20:14,556 - INFO - Returning 33 records for dashboard.
+2025-03-28 14:20:14,558 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:14] "GET /api/data?end_year=2020&topic=&sector=&region=&pestle=&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:18,123 - INFO - Database connection successful.
+2025-03-28 14:20:18,154 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:18,155 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:18] "GET /api/data?end_year=2020&topic=automaker&sector=&region=&pestle=&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:22,607 - INFO - Database connection successful.
+2025-03-28 14:20:22,620 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:22,621 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:22] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=&pestle=&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:26,312 - INFO - Database connection successful.
+2025-03-28 14:20:26,345 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:26,347 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:26] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:28,547 - INFO - Database connection successful.
+2025-03-28 14:20:28,559 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:28,560 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:28] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:31,931 - INFO - Database connection successful.
+2025-03-28 14:20:31,946 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:31,946 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:31] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:35,472 - INFO - Database connection successful.
+2025-03-28 14:20:35,485 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:35,485 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:35] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,47&intensity_min=0&intensity_max=47 HTTP/1.1" 200 -
+2025-03-28 14:20:38,662 - INFO - Database connection successful.
+2025-03-28 14:20:38,676 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:38,677 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:38] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,39&intensity_min=0&intensity_max=39 HTTP/1.1" 200 -
+2025-03-28 14:20:38,797 - INFO - Database connection successful.
+2025-03-28 14:20:38,809 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:38,810 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:38] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,37&intensity_min=0&intensity_max=37 HTTP/1.1" 200 -
+2025-03-28 14:20:39,012 - INFO - Database connection successful.
+2025-03-28 14:20:39,024 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,025 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,12&intensity_min=0&intensity_max=12 HTTP/1.1" 200 -
+2025-03-28 14:20:39,106 - INFO - Database connection successful.
+2025-03-28 14:20:39,120 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,121 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,8&intensity_min=0&intensity_max=8 HTTP/1.1" 200 -
+2025-03-28 14:20:39,187 - INFO - Database connection successful.
+2025-03-28 14:20:39,204 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,205 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,7&intensity_min=0&intensity_max=7 HTTP/1.1" 200 -
+2025-03-28 14:20:39,261 - INFO - Database connection successful.
+2025-03-28 14:20:39,272 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,273 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,8&intensity_min=0&intensity_max=8 HTTP/1.1" 200 -
+2025-03-28 14:20:39,634 - INFO - Database connection successful.
+2025-03-28 14:20:39,653 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,654 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,9&intensity_min=0&intensity_max=9 HTTP/1.1" 200 -
+2025-03-28 14:20:39,786 - INFO - Database connection successful.
+2025-03-28 14:20:39,802 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:39,803 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:39] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,11&intensity_min=0&intensity_max=11 HTTP/1.1" 200 -
+2025-03-28 14:20:40,318 - INFO - Database connection successful.
+2025-03-28 14:20:40,354 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:40,356 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:40] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,73&intensity_min=0&intensity_max=73 HTTP/1.1" 200 -
+2025-03-28 14:20:40,387 - INFO - Database connection successful.
+2025-03-28 14:20:40,403 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:40,404 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:40] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,75&intensity_min=0&intensity_max=75 HTTP/1.1" 200 -
+2025-03-28 14:20:40,425 - INFO - Database connection successful.
+2025-03-28 14:20:40,442 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:20:40,444 - INFO - 127.0.0.1 - - [28/Mar/2025 14:20:40] "GET /api/data?end_year=2020&topic=automaker&sector=Energy&region=Central+Asia&pestle=Economic&source=African+Arguments&country=China&intensity=0,76&intensity_min=0&intensity_max=76 HTTP/1.1" 200 -
+2025-03-28 14:43:42,266 - INFO - Database connection successful.
+2025-03-28 14:43:42,340 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:43:42,351 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:42] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:43:42,449 - INFO - Database connection successful.
+2025-03-28 14:43:42,464 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:43:42,472 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:42] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:43:59,434 - INFO - Database connection successful.
+2025-03-28 14:43:59,454 - INFO - Returning 962 records for dashboard.
+2025-03-28 14:43:59,462 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,98&intensity_min=0&intensity_max=98 HTTP/1.1" 200 -
+2025-03-28 14:43:59,528 - INFO - Database connection successful.
+2025-03-28 14:43:59,544 - INFO - Returning 961 records for dashboard.
+2025-03-28 14:43:59,549 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,84&intensity_min=0&intensity_max=84 HTTP/1.1" 200 -
+2025-03-28 14:43:59,627 - INFO - Database connection successful.
+2025-03-28 14:43:59,652 - INFO - Returning 937 records for dashboard.
+2025-03-28 14:43:59,663 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,34&intensity_min=0&intensity_max=34 HTTP/1.1" 200 -
+2025-03-28 14:43:59,723 - INFO - Database connection successful.
+2025-03-28 14:43:59,737 - INFO - Returning 923 records for dashboard.
+2025-03-28 14:43:59,742 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,23&intensity_min=0&intensity_max=23 HTTP/1.1" 200 -
+2025-03-28 14:43:59,810 - INFO - Database connection successful.
+2025-03-28 14:43:59,826 - INFO - Returning 923 records for dashboard.
+2025-03-28 14:43:59,830 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,22&intensity_min=0&intensity_max=22 HTTP/1.1" 200 -
+2025-03-28 14:43:59,942 - INFO - Database connection successful.
+2025-03-28 14:43:59,956 - INFO - Returning 933 records for dashboard.
+2025-03-28 14:43:59,962 - INFO - 127.0.0.1 - - [28/Mar/2025 14:43:59] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,24&intensity_min=0&intensity_max=24 HTTP/1.1" 200 -
+2025-03-28 14:44:00,159 - INFO - Database connection successful.
+2025-03-28 14:44:00,175 - INFO - Returning 933 records for dashboard.
+2025-03-28 14:44:00,179 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:00] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,27&intensity_min=0&intensity_max=27 HTTP/1.1" 200 -
+2025-03-28 14:44:24,169 - INFO - Database connection successful.
+2025-03-28 14:44:24,184 - INFO - Returning 933 records for dashboard.
+2025-03-28 14:44:24,199 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:24] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,25&intensity_min=0&intensity_max=25 HTTP/1.1" 200 -
+2025-03-28 14:44:24,318 - INFO - Database connection successful.
+2025-03-28 14:44:24,343 - INFO - Returning 933 records for dashboard.
+2025-03-28 14:44:24,355 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:24] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,24&intensity_min=0&intensity_max=24 HTTP/1.1" 200 -
+2025-03-28 14:44:24,429 - INFO - Database connection successful.
+2025-03-28 14:44:24,443 - INFO - Returning 459 records for dashboard.
+2025-03-28 14:44:24,445 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:24] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,7&intensity_min=0&intensity_max=7 HTTP/1.1" 200 -
+2025-03-28 14:44:24,491 - INFO - Database connection successful.
+2025-03-28 14:44:24,504 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:44:24,505 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:24] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,0&intensity_min=0&intensity_max=0 HTTP/1.1" 200 -
+2025-03-28 14:44:24,548 - INFO - Database connection successful.
+2025-03-28 14:44:24,559 - INFO - Returning 1 records for dashboard.
+2025-03-28 14:44:24,559 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:24] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,1&intensity_min=0&intensity_max=1 HTTP/1.1" 200 -
+2025-03-28 14:44:26,952 - INFO - Database connection successful.
+2025-03-28 14:44:26,974 - INFO - Returning 1 records for dashboard.
+2025-03-28 14:44:26,975 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:26] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,1&intensity_min=0&intensity_max=1 HTTP/1.1" 200 -
+2025-03-28 14:44:27,895 - INFO - Database connection successful.
+2025-03-28 14:44:27,920 - INFO - Returning 66 records for dashboard.
+2025-03-28 14:44:27,922 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:27] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,2&intensity_min=0&intensity_max=2 HTTP/1.1" 200 -
+2025-03-28 14:44:27,944 - INFO - Database connection successful.
+2025-03-28 14:44:27,958 - INFO - Returning 244 records for dashboard.
+2025-03-28 14:44:27,961 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:27] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,4&intensity_min=0&intensity_max=4 HTTP/1.1" 200 -
+2025-03-28 14:44:27,972 - INFO - Database connection successful.
+2025-03-28 14:44:27,987 - INFO - Returning 244 records for dashboard.
+2025-03-28 14:44:27,989 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:27] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,5&intensity_min=0&intensity_max=5 HTTP/1.1" 200 -
+2025-03-28 14:44:28,036 - INFO - Database connection successful.
+2025-03-28 14:44:28,047 - INFO - Returning 459 records for dashboard.
+2025-03-28 14:44:28,050 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:28] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,6&intensity_min=0&intensity_max=6 HTTP/1.1" 200 -
+2025-03-28 14:44:28,346 - INFO - Database connection successful.
+2025-03-28 14:44:28,358 - INFO - Returning 244 records for dashboard.
+2025-03-28 14:44:28,360 - INFO - 127.0.0.1 - - [28/Mar/2025 14:44:28] "GET /api/data?end_year=&topic=&sector=&region=&pestle=&source=&country=&intensity=0,5&intensity_min=0&intensity_max=5 HTTP/1.1" 200 -
+2025-03-28 14:48:04,807 - INFO - Database connection successful.
+2025-03-28 14:48:04,858 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:48:04,873 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:04] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:48:05,106 - INFO - Database connection successful.
+2025-03-28 14:48:05,142 - INFO - Returning 1000 records for dashboard.
+2025-03-28 14:48:05,154 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:05] "GET /api/data HTTP/1.1" 200 -
+2025-03-28 14:48:21,643 - INFO - Database connection successful.
+2025-03-28 14:48:21,666 - INFO - Returning 35 records for dashboard.
+2025-03-28 14:48:21,669 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:21] "GET /api/data?end_year=2020&topic=&sector=&region=&pestle=&source=&country=&intensity=0,100&intensity_min=0&intensity_max=100 HTTP/1.1" 200 -
+2025-03-28 14:48:49,221 - INFO - Database connection successful.
+2025-03-28 14:48:49,234 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:48:49,236 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:49] "GET /api/data?end_year=2020&topic=administration&sector=&region=&pestle=&source=&country=&intensity=0,100&intensity_min=0&intensity_max=100 HTTP/1.1" 200 -
+2025-03-28 14:48:52,517 - INFO - Database connection successful.
+2025-03-28 14:48:52,534 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:48:52,534 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:52] "GET /api/data?end_year=2020&topic=administration&sector=Automotive&region=&pestle=&source=&country=&intensity=0,100&intensity_min=0&intensity_max=100 HTTP/1.1" 200 -
+2025-03-28 14:48:58,479 - INFO - Database connection successful.
+2025-03-28 14:48:58,497 - INFO - Returning 0 records for dashboard.
+2025-03-28 14:48:58,509 - INFO - 127.0.0.1 - - [28/Mar/2025 14:48:58] "GET /api/data?end_year=2020&topic=administration&sector=&region=&pestle=&source=&country=&intensity=0,100&intensity_min=0&intensity_max=100 HTTP/1.1" 200 -
