@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 import psycopg2
 from psycopg2 import Error as Psycopg2Error
 from datetime import datetime
@@ -7,21 +7,32 @@ import os
 import json
 import logging
 
-# Set up logging to a file
-logging.basicConfig(filename='D:\\dav\\backend\\app.log', level=logging.DEBUG, 
+# Set up logging (log to stdout for Docker)
+logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Database connection configuration
+# Database connection configuration with explicit defaults
 DB_CONFIG = {
     "dbname": "dashboard_data",
     "user": "postgres",
     "password": "Dcbpg",
-    "host": "localhost",
+    "host": "db",  # Explicitly set to 'db' for Docker, override locally if needed
     "port": "5432"
 }
+
+# Allow overriding with environment variables for flexibility
+DB_CONFIG.update({
+    k: v for k, v in {
+        "dbname": os.getenv("DB_NAME"),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+        "host": os.getenv("DB_HOST"),
+        "port": os.getenv("DB_PORT")
+    }.items() if v is not None
+})
 
 # Function to parse custom date strings into PostgreSQL TIMESTAMP format
 def parse_date(date_str):
@@ -84,12 +95,16 @@ def init_db():
 
 # Function to load data from JSON file and insert into database
 def load_json_data():
-    json_file_path = "D:\\dav\\backend\\data.json"
-    try:
-        if not os.path.exists(json_file_path):
-            logging.warning(f"JSON file not found at {json_file_path}")
+    json_file_path = "/app/data.json"  # Docker path
+    if not os.path.exists(json_file_path):
+        # Local path relative to the backend directory
+        local_path = os.path.join(os.path.dirname(__file__), "data.json")
+        json_file_path = local_path if os.path.exists(local_path) else None
+        if not json_file_path:
+            logging.warning(f"JSON file not found at {local_path} or /app/data.json")
             return
-        
+    
+    try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
@@ -149,27 +164,25 @@ def get_dashboard_data():
         params = []
         
         filters = {
-            'end_year': request.args.get('end_year'),
-            'topic': request.args.get('topic'),
-            'sector': request.args.get('sector'),
-            'region': request.args.get('region'),
-            'pestle': request.args.get('pestle'),
-            'source': request.args.get('source'),
-            'country': request.args.get('country'),
+            'end_year': request.args.getlist('end_year'),
+            'topic': request.args.getlist('topic'),
+            'sector': request.args.getlist('sector'),
+            'region': request.args.getlist('region'),
+            'pestle': request.args.getlist('pestle'),
+            'source': request.args.getlist('source'),
+            'country': request.args.getlist('country'),
             'intensity_min': request.args.get('intensity_min'),
             'intensity_max': request.args.get('intensity_max')
         }
         
-        for key, value in filters.items():
-            if value and key not in ['intensity_min', 'intensity_max']:
-                query += f" AND {key} = %s"
-                params.append(value)
-            elif key == 'intensity_min' and value:
-                query += " AND intensity >= %s"
-                params.append(int(value))
-            elif key == 'intensity_max' and value:
-                query += " AND intensity <= %s"
-                params.append(int(value))
+        for key, values in filters.items():
+            if values and values[0]:  # Check if the list is non-empty
+                if key in ['intensity_min', 'intensity_max']:
+                    query += f" AND intensity {'<=' if key == 'intensity_max' else '>='} %s"
+                    params.append(int(values[0]))
+                else:
+                    query += f" AND {key} = ANY(%s)"
+                    params.append(values)
         
         cur.execute(query, params)
         rows = cur.fetchall()
@@ -272,20 +285,20 @@ def get_insights():
         params = []
         
         filters = {
-            'end_year': request.args.get('end_year'),
-            'topic': request.args.get('topic'),
-            'sector': request.args.get('sector'),
-            'region': request.args.get('region'),
-            'pestle': request.args.get('pestle'),
-            'source': request.args.get('source'),
-            'country': request.args.get('country'),
-            'intensity': request.args.get('intensity')
+            'end_year': request.args.getlist('end_year'),
+            'topic': request.args.getlist('topic'),
+            'sector': request.args.getlist('sector'),
+            'region': request.args.getlist('region'),
+            'pestle': request.args.getlist('pestle'),
+            'source': request.args.getlist('source'),
+            'country': request.args.getlist('country'),
+            'intensity': request.args.getlist('intensity')
         }
         
-        for key, value in filters.items():
-            if value:
-                query += f" AND {key} = %s"
-                params.append(value)
+        for key, values in filters.items():
+            if values and values[0]:  # Check if the list is non-empty
+                query += f" AND {key} = ANY(%s)"
+                params.append(values)
         
         cur.execute(query, params)
         rows = cur.fetchall()
@@ -304,7 +317,6 @@ def get_insights():
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    os.environ["FLASK_SKIP_DOTENV"] = "1"
     init_db()
     load_json_data()
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=5000)
