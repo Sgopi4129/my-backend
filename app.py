@@ -6,33 +6,42 @@ from datetime import datetime
 import os
 import json
 import logging
+import urllib.parse
 
 # Set up logging (log to stdout for Docker)
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,  # Use INFO for production to reduce verbosity
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Configure CORS to allow requests from Vercel frontend (update with your Vercel domain)
+CORS(app, resources={r"/api/*": {"origins": [
+    "https://my-dashboard-hobbits-projects-1895405b.vercel.app",  # Replace with your Vercel URL
+    "http://localhost:3000"  # For local development
+]}})
 
-# Database connection configuration with explicit defaults
+# Database connection configuration
+# Default values for local development
 DB_CONFIG = {
-    "dbname": "dashboard_data",
-    "user": "postgres",
-    "password": "Dcbpg",
-    "host": "db",  # Explicitly set to 'db' for Docker, override locally if needed
-    "port": "5432"
+    "dbname": os.getenv("DB_NAME", "dashboard_data"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD", "Dcbpg"),
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432")
 }
 
-# Allow overriding with environment variables for flexibility
-DB_CONFIG.update({
-    k: v for k, v in {
-        "dbname": os.getenv("DB_NAME"),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "host": os.getenv("DB_HOST"),
-        "port": os.getenv("DB_PORT")
-    }.items() if v is not None
-})
+# Override with DATABASE_URL if provided (Render sets this)
+if "DATABASE_URL" in os.environ:
+    url = urllib.parse.urlparse(os.environ["DATABASE_URL"])
+    DB_CONFIG = {
+        "dbname": url.path[1:],  # Remove leading "/"
+        "user": url.username,
+        "password": url.password,
+        "host": url.hostname,
+        "port": url.port or "5432"
+    }
+    logging.info(f"Using DATABASE_URL to configure database: host={DB_CONFIG['host']}, dbname={DB_CONFIG['dbname']}")
 
 # Function to parse custom date strings into PostgreSQL TIMESTAMP format
 def parse_date(date_str):
@@ -92,12 +101,13 @@ def init_db():
         logging.info("Table 'insights' created with updated schema.")
     except Exception as e:
         logging.error(f"Error initializing database: {str(e)}")
+        raise
 
 # Function to load data from JSON file and insert into database
 def load_json_data():
     json_file_path = "/app/data.json"  # Docker path
     if not os.path.exists(json_file_path):
-        # Local path relative to the backend directory
+        # Local path for development
         local_path = os.path.join(os.path.dirname(__file__), "data.json")
         json_file_path = local_path if os.path.exists(local_path) else None
         if not json_file_path:
@@ -143,8 +153,10 @@ def load_json_data():
         conn.close()
     except Psycopg2Error as e:
         logging.error(f"Database error during JSON load: {str(e)}")
+        raise
     except Exception as e:
         logging.error(f"Unexpected error during JSON load: {str(e)}")
+        raise
 
 # API endpoint for dashboard data
 @app.route('/api/data', methods=['GET'])
@@ -176,7 +188,7 @@ def get_dashboard_data():
         }
         
         for key, values in filters.items():
-            if values and values[0]:  # Check if the list is non-empty
+            if values and values[0]:
                 if key in ['intensity_min', 'intensity_max']:
                     query += f" AND intensity {'<=' if key == 'intensity_max' else '>='} %s"
                     params.append(int(values[0]))
@@ -296,7 +308,7 @@ def get_insights():
         }
         
         for key, values in filters.items():
-            if values and values[0]:  # Check if the list is non-empty
+            if values and values[0]:
                 query += f" AND {key} = ANY(%s)"
                 params.append(values)
         
@@ -316,7 +328,27 @@ def get_insights():
         logging.error(f"Unexpected error during fetch: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
-if __name__ == '__main__':
+# Health check endpoint for Render
+@app.route('/health', methods=['GET'])
+def health():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return jsonify({"status": "healthy"}), 200
+    except Exception as e:
+        logging.error(f"Health check failed: {str(e)}")
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+# Initialize database and load JSON data only once at startup
+try:
     init_db()
     load_json_data()
-    app.run(host='0.0.0.0', port=5000)
+except Exception as e:
+    logging.error(f"Startup error: {str(e)}")
+    # Allow the app to start even if initialization fails (Render will show logs)
+    pass
+
+if __name__ == '__main__':
+    # For local development only
+    port = int(os.getenv("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
