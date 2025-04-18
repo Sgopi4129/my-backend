@@ -1,5 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import psycopg2
 from psycopg2 import Error as Psycopg2Error
 from datetime import datetime
@@ -8,21 +10,35 @@ import json
 import logging
 import urllib.parse
 
-# Set up logging (log to stdout for Docker)
+# Set up logging for production (log to stdout for Render)
 logging.basicConfig(
-    level=logging.INFO,  # Use INFO for production to reduce verbosity
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
 app = Flask(__name__)
-# Configure CORS to allow requests from Vercel frontend (update with your Vercel domain)
-CORS(app, resources={r"/api/*": {"origins": [
-    "https://my-dashboard-hobbits-projects-1895405b.vercel.app",  # Replace with your Vercel URL
-    "http://localhost:3000"  # For local development
-]}})
+
+# Configure CORS to allow requests from Vercel frontend and local development
+CORS(app, resources={
+    r"/*": {  # Apply CORS to all routes, including /warmup
+        "origins": [
+            "https://my-dashboard-hobbits-projects-1895405b.vercel.app",
+            "http://localhost:3000"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Rate limiting to prevent excessive requests
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["100 per day", "10 per minute"]  # Adjust as needed
+)
 
 # Database connection configuration
-# Default values for local development
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME", "dashboard_data"),
     "user": os.getenv("DB_USER", "postgres"),
@@ -31,19 +47,19 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT", "5432")
 }
 
-# Override with DATABASE_URL if provided (Render sets this)
+# Override with DATABASE_URL for Render
 if "DATABASE_URL" in os.environ:
     url = urllib.parse.urlparse(os.environ["DATABASE_URL"])
     DB_CONFIG = {
-        "dbname": url.path[1:],  # Remove leading "/"
+        "dbname": url.path[1:],
         "user": url.username,
         "password": url.password,
         "host": url.hostname,
         "port": url.port or "5432"
     }
-    logging.info(f"Using DATABASE_URL to configure database: host={DB_CONFIG['host']}, dbname={DB_CONFIG['dbname']}")
+    logging.info(f"Using DATABASE_URL: host={DB_CONFIG['host']}, dbname={DB_CONFIG['dbname']}")
 
-# Function to parse custom date strings into PostgreSQL TIMESTAMP format
+# Parse custom date strings
 def parse_date(date_str):
     if not date_str:
         return None
@@ -53,21 +69,21 @@ def parse_date(date_str):
         logging.error(f"Date parsing error: {e} for value: {date_str}")
         return None
 
-# Function to convert empty string to None for integer fields
+# Convert empty string to None for integer fields
 def parse_int(value):
     return None if value == "" else int(value)
 
-# Function to connect to PostgreSQL
+# Connect to PostgreSQL
 def get_db_connection():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        logging.info("Database connection successful.")
+        logging.info("Database connection successful")
         return conn
     except Psycopg2Error as e:
         logging.error(f"Database connection failed: {str(e)}")
         raise Exception(f"Database connection failed: {str(e)}")
 
-# Create table if it doesn’t exist
+# Initialize database
 def init_db():
     try:
         conn = get_db_connection()
@@ -98,16 +114,15 @@ def init_db():
         conn.commit()
         cur.close()
         conn.close()
-        logging.info("Table 'insights' created with updated schema.")
+        logging.info("Table 'insights' created")
     except Exception as e:
         logging.error(f"Error initializing database: {str(e)}")
         raise
 
-# Function to load data from JSON file and insert into database
+# Load JSON data
 def load_json_data():
-    json_file_path = "/app/data.json"  # Docker path
+    json_file_path = "/app/data.json"
     if not os.path.exists(json_file_path):
-        # Local path for development
         local_path = os.path.join(os.path.dirname(__file__), "data.json")
         json_file_path = local_path if os.path.exists(local_path) else None
         if not json_file_path:
@@ -119,7 +134,7 @@ def load_json_data():
             data = json.load(f)
         
         if not data:
-            logging.warning("JSON file is empty.")
+            logging.warning("JSON file is empty")
             return
         
         logging.info(f"Loaded {len(data)} records from {json_file_path}")
@@ -148,7 +163,7 @@ def load_json_data():
         conn.commit()
         cur.execute("SELECT COUNT(*) FROM insights")
         db_count = cur.fetchone()[0]
-        logging.info(f"Inserted {len(insert_data)} records from JSON. Total records in table: {db_count}")
+        logging.info(f"Inserted {len(insert_data)} records. Total in table: {db_count}")
         cur.close()
         conn.close()
     except Psycopg2Error as e:
@@ -158,8 +173,20 @@ def load_json_data():
         logging.error(f"Unexpected error during JSON load: {str(e)}")
         raise
 
+# Warmup endpoint
+@app.route('/warmup', methods=['GET'])
+@limiter.limit("10 per minute")  # Limit to prevent abuse
+def warmup():
+    try:
+        # Lightweight response to minimize load
+        return jsonify({"message": "Backend warmed up"}), 200
+    except Exception as e:
+        logging.error(f"Warmup error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 # API endpoint for dashboard data
 @app.route('/api/data', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_dashboard_data():
     try:
         conn = get_db_connection()
@@ -231,7 +258,7 @@ def get_dashboard_data():
                 "countries": countries
             }
         }
-        logging.info(f"Returning {len(result)} records for dashboard.")
+        logging.info(f"Returning {len(result)} records for dashboard")
         return jsonify(response), 200
     except Psycopg2Error as e:
         logging.error(f"Database error during data fetch: {str(e)}")
@@ -240,16 +267,17 @@ def get_dashboard_data():
         logging.error(f"Unexpected error during data fetch: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
-# Route to insert data from JSON (manual POST request)
+# Insert data endpoint
 @app.route('/api/insert', methods=['POST'])
+@limiter.limit("10 per minute")
 def insert_data():
     try:
         data = request.get_json()
         if not data:
-            logging.warning("No JSON data received in POST request.")
-            return jsonify({"error": "No JSON data provided in request"}), 400
+            logging.warning("No JSON data received in POST request")
+            return jsonify({"error": "No JSON data provided"}), 400
 
-        logging.info(f"Received {len(data)} records to insert via POST.")
+        logging.info(f"Received {len(data)} records to insert via POST")
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -274,7 +302,7 @@ def insert_data():
         conn.commit()
         cur.execute("SELECT COUNT(*) FROM insights")
         db_count = cur.fetchone()[0]
-        logging.info(f"Inserted {len(insert_data)} records via POST. Total records in table: {db_count}")
+        logging.info(f"Inserted {len(insert_data)} records via POST. Total: {db_count}")
         cur.close()
         conn.close()
         return jsonify({"message": f"Data inserted successfully: {len(insert_data)} records"}), 201
@@ -286,8 +314,9 @@ def insert_data():
         logging.error(f"Unexpected error during POST insertion: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
-# Route to fetch filtered data
+# Filtered data endpoint
 @app.route('/api/insights', methods=['GET'])
+@limiter.limit("50 per minute")
 def get_insights():
     try:
         conn = get_db_connection()
@@ -319,17 +348,18 @@ def get_insights():
         
         cur.close()
         conn.close()
-        logging.info(f"Returning {len(result)} records from database.")
+        logging.info(f"Returning {len(result)} records from database")
         return jsonify(result), 200
     except Psycopg2Error as e:
         logging.error(f"Database error during fetch: {str(e)}")
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except Exception as e:
         logging.error(f"Unexpected error during fetch: {str(e)}")
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 2100
 
-# Health check endpoint for Render
+# Health check endpoint
 @app.route('/health', methods=['GET'])
+@limiter.exempt  # No rate limit for health checks
 def health():
     try:
         conn = get_db_connection()
@@ -339,16 +369,14 @@ def health():
         logging.error(f"Health check failed: {str(e)}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
-# Initialize database and load JSON data only once at startup
+# Initialize database and load JSON data at startup
 try:
     init_db()
     load_json_data()
 except Exception as e:
     logging.error(f"Startup error: {str(e)}")
-    # Allow the app to start even if initialization fails (Render will show logs)
     pass
 
 if __name__ == '__main__':
-    # For local development only
     port = int(os.getenv("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
