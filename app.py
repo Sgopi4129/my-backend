@@ -7,22 +7,27 @@ import os
 import json
 import logging
 import urllib.parse
+from dotenv import load_dotenv
 
-# Configure logging for production
+# Load environment variables from .env file (for local development)
+load_dotenv()
+
+# Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")),
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
 app = Flask(__name__)
 
-# Configure CORS for all routes
+# Configure CORS
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://my-dashboard-5gin.vercel.app,https://my-dashboard-5gin-91mf4fth4-hobbits-projects-1895405b.vercel.app,http://localhost:3000"
+).split(",")
 CORS(app, resources={
     r"/*": {
-        "origins": [
-            "https://my-dashboard-hobbits-projects-1895405b.vercel.app",
-            "http://localhost:3000"
-        ],
+        "origins": allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
@@ -34,8 +39,10 @@ CORS(app, resources={
 def add_cors_headers(response):
     origin = request.headers.get("Origin")
     logging.info(f"Request Origin: {origin}")
-    # Temporarily allow all origins for debugging
-    response.headers["Access-Control-Allow-Origin"] = "*"  # Revert to allowed_origins in production
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]  # Fallback to primary origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -48,7 +55,7 @@ def handle_error(error):
     logging.error(f"Unhandled error: {str(error)}", exc_info=True)
     response = jsonify({"error": str(error)})
     response.status_code = 500
-    response.headers["Access-Control-Allow-Origin"] = "*"  # Revert to specific origins in production
+    response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
     return response
 
 # Database configuration
@@ -179,7 +186,7 @@ def load_json_data():
 def warmup():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Max-Age"] = "86400"
@@ -196,7 +203,7 @@ def warmup():
 def get_dashboard_data():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Max-Age"] = "86400"
@@ -275,7 +282,7 @@ def get_dashboard_data():
 def insert_data():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
         response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Max-Age"] = "86400"
@@ -286,6 +293,11 @@ def insert_data():
         if not data:
             logging.warning("No JSON data received in POST request")
             return jsonify({"error": "No JSON data provided"}), 400
+
+        # Basic validation
+        for item in data:
+            if not all(key in item for key in ['end_year', 'topic']):
+                return jsonify({"error": "Missing required fields: end_year, topic"}), 400
 
         conn = get_db_connection()
         with conn.cursor() as cur:
@@ -323,7 +335,7 @@ def insert_data():
 def get_insights():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Max-Age"] = "86400"
@@ -370,7 +382,7 @@ def get_insights():
 def health():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Max-Age"] = "86400"
