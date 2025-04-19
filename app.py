@@ -7,10 +7,6 @@ import os
 import json
 import logging
 import urllib.parse
-from dotenv import load_dotenv
-
-# Load environment variables from .env file (for local development)
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -34,35 +30,12 @@ CORS(app, resources={
     }
 })
 
-# Helper function to set CORS headers
-def set_cors_headers(response, origin):
-    if origin in allowed_origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-    else:
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]  # Fallback to primary origin
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+logging.info(f"Allowed Origins: {allowed_origins}")
 
-# Add CORS headers to all responses
-@app.after_request
-def add_cors_headers(response):
-    origin = request.headers.get("Origin")
-    logging.info(f"Request Origin: {origin}")
-    set_cors_headers(response, origin)
-    logging.info(f"CORS headers added: {response.headers}")
-    return response
-
-# Handle global errors with CORS headers
-@app.errorhandler(Exception)
-def handle_error(error):
-    logging.error(f"Unhandled error: {str(error)}", exc_info=True)
-    response = jsonify({"error": str(error)})
-    response.status_code = 500
-    origin = request.headers.get("Origin")
-    set_cors_headers(response, origin)
-    return response
+# Log all incoming requests to diagnose 404 errors
+@app.before_request
+def log_request_info():
+    logging.info(f"Requested URL: {request.url}, Method: {request.method}, Origin: {request.headers.get('Origin')}")
 
 # Database configuration
 DB_CONFIG = {
@@ -84,6 +57,14 @@ if "DATABASE_URL" in os.environ:
     }
     logging.info(f"Using DATABASE_URL: host={DB_CONFIG['host']}, dbname={DB_CONFIG['dbname']}")
 
+# Validate environment variables
+required_env_vars = ["DATABASE_URL"] if "DATABASE_URL" in os.environ else ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT"]
+for var in required_env_vars:
+    if not os.getenv(var):
+        logging.error(f"Missing required environment variable: {var}")
+        raise ValueError(f"Missing required environment variable: {var}")
+
+# Helper functions
 def parse_date(date_str):
     if not date_str:
         return None
@@ -107,31 +88,40 @@ def init_db():
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS insights;")
             cur.execute("""
-                CREATE TABLE insights (
-                    id SERIAL PRIMARY KEY,
-                    end_year VARCHAR(255),
-                    intensity INTEGER,
-                    sector VARCHAR(255),
-                    topic VARCHAR(255),
-                    insight TEXT,
-                    url TEXT,
-                    region VARCHAR(255),
-                    start_year VARCHAR(255),
-                    impact VARCHAR(255),
-                    added TIMESTAMP,
-                    published TIMESTAMP,
-                    country VARCHAR(255),
-                    relevance INTEGER,
-                    pestle VARCHAR(255),
-                    source VARCHAR(255),
-                    title TEXT,
-                    likelihood INTEGER
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'insights'
                 );
             """)
-            conn.commit()
-        logging.info("Table 'insights' created")
+            table_exists = cur.fetchone()[0]
+            if not table_exists:
+                cur.execute("""
+                    CREATE TABLE insights (
+                        id SERIAL PRIMARY KEY,
+                        end_year VARCHAR(255),
+                        intensity INTEGER,
+                        sector VARCHAR(255),
+                        topic VARCHAR(255),
+                        insight TEXT,
+                        url TEXT,
+                        region VARCHAR(255),
+                        start_year VARCHAR(255),
+                        impact VARCHAR(255),
+                        added TIMESTAMP,
+                        published TIMESTAMP,
+                        country VARCHAR(255),
+                        relevance INTEGER,
+                        pestle VARCHAR(255),
+                        source VARCHAR(255),
+                        title TEXT,
+                        likelihood INTEGER
+                    );
+                """)
+                conn.commit()
+                logging.info("Table 'insights' created")
+            else:
+                logging.info("Table 'insights' already exists")
     except Exception as e:
         logging.error(f"Error initializing database: {str(e)}")
         raise
@@ -140,44 +130,43 @@ def init_db():
             conn.close()
 
 def load_json_data():
-    json_file_path = "/app/data.json"
-    if not os.path.exists(json_file_path):
-        local_path = os.path.join(os.path.dirname(__file__), "data.json")
-        json_file_path = local_path if os.path.exists(local_path) else None
-        if not json_file_path:
-            logging.warning(f"JSON file not found at {local_path} or /app/data.json")
-            return
-    
     try:
-        with open(json_file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        if not data:
-            logging.warning("JSON file is empty")
-            return
-        
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("TRUNCATE TABLE insights RESTART IDENTITY;")
-            insert_data = [
-                (
-                    item.get('end_year'), parse_int(item.get('intensity')), item.get('sector'), item.get('topic'),
-                    item.get('insight'), item.get('url'), item.get('region'), item.get('start_year'),
-                    item.get('impact'), parse_date(item.get('added')), parse_date(item.get('published')),
-                    item.get('country'), parse_int(item.get('relevance')), item.get('pestle'), item.get('source'),
-                    item.get('title'), parse_int(item.get('likelihood'))
-                ) for item in data
-            ]
-            cur.executemany("""
-                INSERT INTO insights (
-                    end_year, intensity, sector, topic, insight, url, region, start_year, 
-                    impact, added, published, country, relevance, pestle, source, title, likelihood
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, insert_data)
-            conn.commit()
             cur.execute("SELECT COUNT(*) FROM insights")
-            db_count = cur.fetchone()[0]
-            logging.info(f"Inserted {len(insert_data)} records. Total: {db_count}")
+            count = cur.fetchone()[0]
+            if count == 0:
+                json_file_path = "/app/data.json"
+                if not os.path.exists(json_file_path):
+                    local_path = os.path.join(os.path.dirname(__file__), "data.json")
+                    json_file_path = local_path if os.path.exists(local_path) else None
+                    if not json_file_path:
+                        logging.warning(f"JSON file not found at {local_path} or /app/data.json")
+                        return
+                with open(json_file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                if not data:
+                    logging.warning("JSON file is empty")
+                    return
+                insert_data = [
+                    (
+                        item.get('end_year'), parse_int(item.get('intensity')), item.get('sector'), item.get('topic'),
+                        item.get('insight'), item.get('url'), item.get('region'), item.get('start_year'),
+                        item.get('impact'), parse_date(item.get('added')), parse_date(item.get('published')),
+                        item.get('country'), parse_int(item.get('relevance')), item.get('pestle'), item.get('source'),
+                        item.get('title'), parse_int(item.get('likelihood'))
+                    ) for item in data
+                ]
+                cur.executemany("""
+                    INSERT INTO insights (
+                        end_year, intensity, sector, topic, insight, url, region, start_year, 
+                        impact, added, published, country, relevance, pestle, source, title, likelihood
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, insert_data)
+                conn.commit()
+                logging.info(f"Inserted {len(insert_data)} records from JSON")
+            else:
+                logging.info("Table 'insights' already contains data, skipping JSON load")
     except Psycopg2Error as e:
         logging.error(f"Database error during JSON load: {str(e)}")
         raise
@@ -188,13 +177,17 @@ def load_json_data():
         if 'conn' in locals():
             conn.close()
 
-@app.route('/warmup', methods=['GET', 'OPTIONS'])
+# Routes
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"message": "Welcome to the API"}), 200
+
+@app.route('/favicon.ico', methods=['GET'])
+def favicon():
+    return "", 204  # No content response
+
+@app.route('/warmup', methods=['GET'])
 def warmup():
-    if request.method == 'OPTIONS':
-        response = jsonify({"message": "CORS preflight"})
-        origin = request.headers.get("Origin")
-        set_cors_headers(response, origin)
-        return response, 200
     try:
         response = jsonify({"message": "Backend warmed up"})
         response.headers['Cache-Control'] = 'no-cache'
@@ -203,13 +196,8 @@ def warmup():
         logging.error(f"Warmup error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/data', methods=['GET', 'OPTIONS'])
+@app.route('/api/data', methods=['GET'])
 def get_dashboard_data():
-    if request.method == 'OPTIONS':
-        response = jsonify({"message": "CORS preflight"})
-        origin = request.headers.get("Origin")
-        set_cors_headers(response, origin)
-        return response, 200
     conn = None
     try:
         conn = get_db_connection()
@@ -248,7 +236,6 @@ def get_dashboard_data():
             columns = [desc[0] for desc in cur.description]
             result = [dict(zip(columns, row)) for row in rows]
             
-            # Fetch filter options efficiently
             filter_queries = {
                 "end_years": "SELECT DISTINCT end_year FROM insights WHERE end_year IS NOT NULL AND end_year != '' ORDER BY end_year",
                 "topics": "SELECT DISTINCT topic FROM insights WHERE topic IS NOT NULL AND topic != '' ORDER BY topic",
@@ -280,13 +267,8 @@ def get_dashboard_data():
         if conn:
             conn.close()
 
-@app.route('/api/insert', methods=['POST', 'OPTIONS'])
+@app.route('/api/insert', methods=['POST'])
 def insert_data():
-    if request.method == 'OPTIONS':
-        response = jsonify({"message": "CORS preflight"})
-        origin = request.headers.get("Origin")
-        set_cors_headers(response, origin)
-        return response, 200
     conn = None
     try:
         data = request.get_json()
@@ -294,7 +276,6 @@ def insert_data():
             logging.warning("No JSON data received in POST request")
             return jsonify({"error": "No JSON data provided"}), 400
 
-        # Basic validation
         for item in data:
             if not all(key in item for key in ['end_year', 'topic']):
                 return jsonify({"error": "Missing required fields: end_year, topic"}), 400
@@ -331,13 +312,8 @@ def insert_data():
         if conn:
             conn.close()
 
-@app.route('/api/insights', methods=['GET', 'OPTIONS'])
+@app.route('/api/insights', methods=['GET'])
 def get_insights():
-    if request.method == 'OPTIONS':
-        response = jsonify({"message": "CORS preflight"})
-        origin = request.headers.get("Origin")
-        set_cors_headers(response, origin)
-        return response, 200
     conn = None
     try:
         conn = get_db_connection()
@@ -376,13 +352,8 @@ def get_insights():
         if conn:
             conn.close()
 
-@app.route('/health', methods=['GET', 'OPTIONS'])
+@app.route('/health', methods=['GET'])
 def health():
-    if request.method == 'OPTIONS':
-        response = jsonify({"message": "CORS preflight"})
-        origin = request.headers.get("Origin")
-        set_cors_headers(response, origin)
-        return response, 200
     conn = None
     try:
         conn = get_db_connection()
@@ -395,12 +366,24 @@ def health():
         if conn:
             conn.close()
 
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    logging.warning(f"404 error for URL: {request.url}")
+    return jsonify({"error": "Not Found", "message": "The requested resource does not exist."}), 404
+
+@app.errorhandler(Exception)
+def handle_error(error):
+    logging.error(f"Unhandled error: {str(error)}", exc_info=True)
+    return jsonify({"error": str(error)}), 500
+
+# Startup initialization
 try:
     init_db()
     load_json_data()
 except Exception as e:
     logging.error(f"Startup error: {str(e)}")
-    pass
+    raise  # Fail startup if initialization fails
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
