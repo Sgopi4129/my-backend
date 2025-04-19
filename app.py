@@ -1,9 +1,9 @@
 import json
 import logging
 import os
+import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_caching import Cache
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import psycopg2.pool
@@ -23,8 +23,18 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configure caching (in-memory, lightweight)
-cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
+# Simple in-memory cache
+cache = {}
+CACHE_TIMEOUT = 300  # 5 minutes for data, 1 hour for filters
+FILTERS_CACHE_KEY = "filters"
+def set_cache(key, value, timeout=CACHE_TIMEOUT):
+    cache[key] = {"data": value, "expires": time.time() + timeout}
+def get_cache(key):
+    if key in cache and cache[key]["expires"] > time.time():
+        return cache[key]["data"]
+    return None
+def clear_cache():
+    cache.clear()
 
 # Database connection pool
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -98,7 +108,7 @@ def init_database():
                 cur.execute("CREATE INDEX idx_data_intensity ON data(intensity)")
                 conn.commit()
                 logger.info("Created 'data' table and indexes")
-                # Optionally populate with data.json
+                # Populate with data.json
                 data = load_local_data()
                 if data:
                     columns = ['end_year', 'topic', 'sector', 'region', 'pestle', 'source', 'country', 'intensity']
@@ -126,10 +136,18 @@ def health():
     return jsonify({"status": status}), 200
 
 @app.route('/api/data', methods=['GET', 'OPTIONS'])
-@cache.cached(timeout=300, query_string=True)  # Cache for 5 minutes
 def get_data():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
+
+    # Generate cache key based on query parameters
+    query_params = request.query_string.decode()
+    cache_key = f"data:{query_params}"
+
+    # Check cache
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return jsonify(cached_data)
 
     filters = {
         'end_years': request.args.getlist('end_years'),
@@ -161,7 +179,9 @@ def get_data():
         conn = get_db_connection()
         if not conn:
             logger.warning("Falling back to local data due to no DB connection")
-            return jsonify({"data": load_local_data(), "filters": {}})
+            result = {"data": load_local_data(), "filters": {}}
+            set_cache(cache_key, result)
+            return jsonify(result)
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Check if table exists
@@ -171,16 +191,18 @@ def get_data():
             if not table_exists:
                 logger.warning("Table 'data' does not exist, falling back to local data")
                 release_db_connection(conn)
-                return jsonify({"data": load_local_data(), "filters": {}})
+                result = {"data": load_local_data(), "filters": {}}
+                set_cache(cache_key, result)
+                return jsonify(result)
 
-            # Execute main query (limit to 1000 rows to prevent memory overload)
+            # Execute main query (limit to 1000 rows)
             query += " LIMIT 1000"
             cur.execute(query, params)
             data = cur.fetchall()
 
             # Fetch filter options (cached separately)
-            @cache.memoize(timeout=3600)  # Cache for 1 hour
-            def get_filters():
+            filters_data = get_cache(FILTERS_CACHE_KEY)
+            if not filters_data:
                 cur.execute("""
                     SELECT 
                         ARRAY_AGG(DISTINCT end_year) AS end_years,
@@ -199,12 +221,11 @@ def get_data():
                       AND source IS NOT NULL
                       AND country IS NOT NULL
                 """)
-                return cur.fetchone()
-
-            filters_data = get_filters()
+                filters_data = cur.fetchone()
+                set_cache(FILTERS_CACHE_KEY, filters_data, timeout=3600)  # 1 hour
 
         release_db_connection(conn)
-        return jsonify({
+        result = {
             "data": data,
             "filters": {
                 "end_years": filters_data['end_years'] or [],
@@ -215,11 +236,15 @@ def get_data():
                 "sources": filters_data['sources'] or [],
                 "countries": filters_data['countries'] or []
             }
-        })
+        }
+        set_cache(cache_key, result)
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching data: {str(e)}")
         release_db_connection(conn)
-        return jsonify({"data": load_local_data(), "filters": {}}), 200
+        result = {"data": load_local_data(), "filters": {}}
+        set_cache(cache_key, result)
+        return jsonify(result), 200
 
 @app.route('/api/insert', methods=['POST', 'OPTIONS'])
 def insert_data():
@@ -230,7 +255,7 @@ def insert_data():
         new_data = request.get_json()
         if not isinstance(new_data, list):
             return jsonify({"error": "Expected a list of data items"}), 400
-        if len(new_data) > 100:  # Limit batch size to prevent overload
+        if len(new_data) > 100:  # Limit batch size
             return jsonify({"error": "Batch size exceeds 100 items"}), 400
 
         conn = get_db_connection()
@@ -253,7 +278,7 @@ def insert_data():
             psycopg2.extras.execute_values(cur, query, values)
 
         conn.commit()
-        cache.clear()  # Clear cache to reflect new data
+        clear_cache()  # Clear cache to reflect new data
         release_db_connection(conn)
         return jsonify({"message": "Data inserted successfully"})
     except Exception as e:
