@@ -34,11 +34,8 @@ CORS(app, resources={
     }
 })
 
-# Add CORS headers to all responses
-@app.after_request
-def add_cors_headers(response):
-    origin = request.headers.get("Origin")
-    logging.info(f"Request Origin: {origin}")
+# Helper function to set CORS headers
+def set_cors_headers(response, origin):
     if origin in allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
     else:
@@ -46,6 +43,14 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+# Add CORS headers to all responses
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin")
+    logging.info(f"Request Origin: {origin}")
+    set_cors_headers(response, origin)
     logging.info(f"CORS headers added: {response.headers}")
     return response
 
@@ -55,7 +60,8 @@ def handle_error(error):
     logging.error(f"Unhandled error: {str(error)}", exc_info=True)
     response = jsonify({"error": str(error)})
     response.status_code = 500
-    response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
+    origin = request.headers.get("Origin")
+    set_cors_headers(response, origin)
     return response
 
 # Database configuration
@@ -186,10 +192,8 @@ def load_json_data():
 def warmup():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        origin = request.headers.get("Origin")
+        set_cors_headers(response, origin)
         return response, 200
     try:
         response = jsonify({"message": "Backend warmed up"})
@@ -203,10 +207,8 @@ def warmup():
 def get_dashboard_data():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        origin = request.headers.get("Origin")
+        set_cors_headers(response, origin)
         return response, 200
     conn = None
     try:
@@ -282,10 +284,8 @@ def get_dashboard_data():
 def insert_data():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        origin = request.headers.get("Origin")
+        set_cors_headers(response, origin)
         return response, 200
     conn = None
     try:
@@ -335,10 +335,8 @@ def insert_data():
 def get_insights():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        origin = request.headers.get("Origin")
+        set_cors_headers(response, origin)
         return response, 200
     conn = None
     try:
@@ -382,10 +380,8 @@ def get_insights():
 def health():
     if request.method == 'OPTIONS':
         response = jsonify({"message": "CORS preflight"})
-        response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        origin = request.headers.get("Origin")
+        set_cors_headers(response, origin)
         return response, 200
     conn = None
     try:
