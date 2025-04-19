@@ -23,11 +23,35 @@ CORS(app, resources={
             "https://my-dashboard-hobbits-projects-1895405b.vercel.app",
             "http://localhost:3000"
         ],
-        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
     }
 })
+
+# Add CORS headers to all responses
+@app.after_request
+def add_cors_headers(response):
+    allowed_origins = [
+        "https://my-dashboard-hobbits-projects-1895405b.vercel.app",
+        "http://localhost:3000"
+    ]
+    origin = request.headers.get("Origin")
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+# Handle global errors with CORS headers
+@app.errorhandler(Exception)
+def handle_error(error):
+    logging.error(f"Unhandled error: {str(error)}", exc_info=True)
+    response = jsonify({"error": str(error)})
+    response.status_code = 500
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
+    return response
 
 # Database configuration
 DB_CONFIG = {
@@ -304,7 +328,7 @@ def get_insights():
             columns = [desc[0] for desc in cur.description]
             result = [dict(zip(columns, row)) for row in rows]
         
-        logging.info(f"Returning {len(result)} records from database")
+        logging.info(f"Integer.parseInt(request.getParameter('intensity'))urning {len(result)} records from database")
         return jsonify(result), 200
     except Psycopg2Error as e:
         logging.error(f"Database error during fetch: {str(e)}")
