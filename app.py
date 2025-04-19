@@ -17,10 +17,13 @@ logging.basicConfig(
 app = Flask(__name__)
 
 # Configure CORS
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "https://my-dashboard-5gin.vercel.app,https://my-dashboard-5gin-91mf4fth4-hobbits-projects-1895405b.vercel.app,http://localhost:3000"
-).split(",")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "https://my-dashboard-5gin.vercel.app,http://localhost:3000").split(",")
+# Remove any empty or invalid origins
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+if not allowed_origins:
+    logging.warning("No valid ALLOWED_ORIGINS provided; defaulting to localhost")
+    allowed_origins = ["http://localhost:3000"]
+
 CORS(app, resources={
     r"/*": {
         "origins": allowed_origins,
@@ -35,7 +38,7 @@ logging.info(f"Allowed Origins: {allowed_origins}")
 # Log all incoming requests to diagnose 404 errors
 @app.before_request
 def log_request_info():
-    logging.info(f"Requested URL: {request.url}, Method: {request.method}, Origin: {request.headers.get('Origin')}")
+    logging.info(f"Requested URL: {request.url}, Method: {request.method}, Origin: {request.headers.get('Origin', 'None')}, Headers: {dict(request.headers)}")
 
 # Database configuration
 DB_CONFIG = {
@@ -53,7 +56,7 @@ if "DATABASE_URL" in os.environ:
         "user": url.username,
         "password": url.password,
         "host": url.hostname,
-        "port": url.port or "5432"
+        "port": str(url.port or 5432)
     }
     logging.info(f"Using DATABASE_URL: host={DB_CONFIG['host']}, dbname={DB_CONFIG['dbname']}")
 
@@ -71,22 +74,27 @@ def parse_date(date_str):
     try:
         return datetime.strptime(date_str, "%B, %d %Y %H:%M:%S")
     except ValueError:
+        logging.warning(f"Invalid date format: {date_str}")
         return None
 
 def parse_int(value):
-    return None if value == "" else int(value)
+    if value == "" or value is None:
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        logging.warning(f"Invalid integer value: {value}")
+        return None
 
 def get_db_connection():
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        return conn
+        return psycopg2.connect(**DB_CONFIG)
     except Psycopg2Error as e:
         logging.error(f"Database connection failed: {str(e)}")
         raise Exception(f"Database connection failed: {str(e)}")
 
 def init_db():
-    try:
-        conn = get_db_connection()
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT EXISTS (
@@ -122,21 +130,14 @@ def init_db():
                 logging.info("Table 'insights' created")
             else:
                 logging.info("Table 'insights' already exists")
-    except Exception as e:
-        logging.error(f"Error initializing database: {str(e)}")
-        raise
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 def load_json_data():
-    try:
-        conn = get_db_connection()
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM insights")
             count = cur.fetchone()[0]
             if count == 0:
-                json_file_path = "/app/data.json"
+                json_file_path = os.getenv("JSON_DATA_PATH", "/app/data.json")
                 if not os.path.exists(json_file_path):
                     local_path = os.path.join(os.path.dirname(__file__), "data.json")
                     json_file_path = local_path if os.path.exists(local_path) else None
@@ -167,20 +168,11 @@ def load_json_data():
                 logging.info(f"Inserted {len(insert_data)} records from JSON")
             else:
                 logging.info("Table 'insights' already contains data, skipping JSON load")
-    except Psycopg2Error as e:
-        logging.error(f"Database error during JSON load: {str(e)}")
-        raise
-    except Exception as e:
-        logging.error(f"Unexpected error during JSON load: {str(e)}")
-        raise
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 # Routes
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({"message": "Welcome to the API"}), 200
+    return jsonify({"message": "Welcome to the API", "endpoints": ["/warmup", "/api/data", "/api/insert", "/api/insights", "/health"]}), 200
 
 @app.route('/favicon.ico', methods=['GET'])
 def favicon():
@@ -193,7 +185,7 @@ def warmup():
         response.headers['Cache-Control'] = 'no-cache'
         return response, 200
     except Exception as e:
-        logging.error(f"Warmup error: {str(e)}")
+        logging.error(f"Warmup error: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/data', methods=['GET'])
@@ -225,11 +217,15 @@ def get_dashboard_data():
             for key, values in filters.items():
                 if values and values[0]:
                     if key in ['intensity_min', 'intensity_max']:
-                        query += f" AND intensity {'<=' if key == 'intensity_max' else '>='} %s"
-                        params.append(int(values[0]))
+                        try:
+                            params.append(int(values[0]))
+                            query += f" AND intensity {'<=' if key == 'intensity_max' else '>='} %s"
+                        except ValueError:
+                            logging.warning(f"Invalid {key} value: {values[0]}")
+                            return jsonify({"error": f"Invalid {key} value"}), 400
                     else:
                         query += f" AND {key} = ANY(%s)"
-                        params.append(values)
+                        params.append([v for v in values if v])
             
             cur.execute(query, params)
             rows = cur.fetchall()
@@ -258,10 +254,10 @@ def get_dashboard_data():
         logging.info(f"Returning {len(result)} records for dashboard")
         return response, 200
     except Psycopg2Error as e:
-        logging.error(f"Database error during data fetch: {str(e)}")
+        logging.error(f"Database error during data fetch: {str(e)}", exc_info=True)
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except Exception as e:
-        logging.error(f"Unexpected error during data fetch: {str(e)}")
+        logging.error(f"Unexpected error during data fetch: {str(e)}", exc_info=True)
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
     finally:
         if conn:
@@ -278,6 +274,7 @@ def insert_data():
 
         for item in data:
             if not all(key in item for key in ['end_year', 'topic']):
+                logging.warning(f"Missing required fields in item: {item}")
                 return jsonify({"error": "Missing required fields: end_year, topic"}), 400
 
         conn = get_db_connection()
@@ -303,10 +300,10 @@ def insert_data():
             logging.info(f"Inserted {len(insert_data)} records via POST. Total: {db_count}")
         return jsonify({"message": f"Data inserted successfully: {len(insert_data)} records"}), 201
     except Psycopg2Error as e:
-        logging.error(f"Database error during POST insertion: {str(e)}")
+        logging.error(f"Database error during POST insertion: {str(e)}", exc_info=True)
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except Exception as e:
-        logging.error(f"Unexpected error during POST insertion: {str(e)}")
+        logging.error(f"Unexpected error during POST insertion: {str(e)}", exc_info=True)
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
     finally:
         if conn:
@@ -333,7 +330,7 @@ def get_insights():
             for key, values in filters.items():
                 if values and values[0]:
                     query += f" AND {key} = ANY(%s)"
-                    params.append(values)
+                    params.append([v for v in values if v])
             
             cur.execute(query, params)
             rows = cur.fetchall()
@@ -343,10 +340,10 @@ def get_insights():
         logging.info(f"Returning {len(result)} records from database")
         return jsonify(result), 200
     except Psycopg2Error as e:
-        logging.error(f"Database error during fetch: {str(e)}")
+        logging.error(f"Database error during fetch: {str(e)}", exc_info=True)
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except Exception as e:
-        logging.error(f"Unexpected error during fetch: {str(e)}")
+        logging.error(f"Unexpected error during fetch: {str(e)}", exc_info=True)
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
     finally:
         if conn:
@@ -360,7 +357,7 @@ def health():
         conn.close()
         return jsonify({"status": "healthy"}), 200
     except Exception as e:
-        logging.error(f"Health check failed: {str(e)}")
+        logging.error(f"Health check failed: {str(e)}", exc_info=True)
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
     finally:
         if conn:
@@ -369,7 +366,7 @@ def health():
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
-    logging.warning(f"404 error for URL: {request.url}")
+    logging.warning(f"404 error for URL: {request.url}, Origin: {request.headers.get('Origin', 'None')}, Headers: {dict(request.headers)}")
     return jsonify({"error": "Not Found", "message": "The requested resource does not exist."}), 404
 
 @app.errorhandler(Exception)
@@ -382,9 +379,9 @@ try:
     init_db()
     load_json_data()
 except Exception as e:
-    logging.error(f"Startup error: {str(e)}")
+    logging.error(f"Startup error: {str(e)}", exc_info=True)
     raise  # Fail startup if initialization fails
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=os.getenv("FLASK_DEBUG", "False").lower() == "true")
