@@ -9,7 +9,7 @@ import psycopg2.pool
 
 app = Flask(__name__)
 
-# Configure logging (minimize overhead)
+# Configure logging (minimal overhead)
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: MOLECULES: %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,13 @@ CORS(app, resources={r"/*": {
 
 # Database connection pool
 DATABASE_URL = os.getenv('DATABASE_URL')
-db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, dsn=DATABASE_URL)  # Minimal pool size
+db_pool = None
+try:
+    db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, dsn=DATABASE_URL)
+except Exception as e:
+    logger.error(f"Failed to initialize DB pool: {str(e)}")
 
-# Load local JSON data as fallback (cached to reduce I/O)
+# Local JSON data cache
 JSON_DATA_PATH = os.getenv('JSON_DATA_PATH', './data.json')
 _local_data_cache = None
 
@@ -42,6 +46,8 @@ def load_local_data():
     return _local_data_cache
 
 def get_db_connection():
+    if db_pool is None:
+        return None
     try:
         return db_pool.getconn()
     except Exception as e:
@@ -49,7 +55,7 @@ def get_db_connection():
         return None
 
 def release_db_connection(conn):
-    if conn:
+    if conn and db_pool:
         db_pool.putconn(conn)
 
 @app.route('/warmup', methods=['GET'])
@@ -85,7 +91,6 @@ def get_data():
     query = "SELECT * FROM data WHERE 1=1"
     params = []
 
-    # Use parameterized queries for IN clauses to improve performance
     for key, values in filters.items():
         if key in ['end_years', 'topics', 'sectors', 'regions', 'pestles', 'sources', 'countries'] and values:
             query += f" AND {key[:-1]} = ANY(%s)"
@@ -100,15 +105,24 @@ def get_data():
     try:
         conn = get_db_connection()
         if not conn:
-            logger.warning("Falling back to local data")
+            logger.warning("Falling back to local data due to no DB connection")
             return jsonify({"data": load_local_data(), "filters": {}})
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Check if table exists
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'data')")
+            table_exists = cur.fetchone()['exists']
+
+            if not table_exists:
+                logger.warning("Table 'data' does not exist, falling back to local data")
+                release_db_connection(conn)
+                return jsonify({"data": load_local_data(), "filters": {}})
+
             # Execute main query
             cur.execute(query, params)
             data = cur.fetchall()
 
-            # Combine filter queries into a single query to reduce DB round-trips
+            # Fetch filter options in one query
             cur.execute("""
                 SELECT 
                     ARRAY_AGG(DISTINCT end_year) AS end_years,
@@ -145,7 +159,7 @@ def get_data():
     except Exception as e:
         logger.error(f"Error fetching data: {str(e)}")
         release_db_connection(conn)
-        return jsonify({"error": "Failed to fetch data"}), 500
+        return jsonify({"data": load_local_data(), "filters": {}}), 200  # Graceful fallback
 
 @app.route('/api/insert', methods=['POST', 'OPTIONS'])
 def insert_data():
@@ -162,12 +176,20 @@ def insert_data():
             return jsonify({"error": "Database connection failed"}), 500
 
         with conn.cursor() as cur:
-            # Batch insert to reduce overhead
+            # Check if table exists
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'data')")
+            table_exists = cur.fetchone()['exists']
+
+            if not table_exists:
+                release_db_connection(conn)
+                return jsonify({"error": "Table 'data' does not exist"}), 500
+
+            # Batch insert
             columns = new_data[0].keys()
             columns_str = ', '.join(columns)
             placeholders = ', '.join(['%s'] * len(columns))
             query = f"INSERT INTO data ({columns_str}) VALUES %s"
-            values = [tuple(item[col] for col in columns) for item in new_data]
+            values = [tuple(item.get(col, None) for col in columns) for item in new_data]
             psycopg2.extras.execute_values(cur, query, values)
 
         conn.commit()
