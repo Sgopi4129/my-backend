@@ -3,6 +3,7 @@ import logging
 import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_caching import Cache
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import psycopg2.pool
@@ -22,11 +23,14 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
+# Configure caching (in-memory, lightweight)
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
+
 # Database connection pool
 DATABASE_URL = os.getenv('DATABASE_URL')
 db_pool = None
 try:
-    db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, dsn=DATABASE_URL)
+    db_pool = psycopg2.pool.SimpleConnectionPool(1, 1, dsn=DATABASE_URL)  # Single connection
 except Exception as e:
     logger.error(f"Failed to initialize DB pool: {str(e)}")
 
@@ -58,6 +62,56 @@ def release_db_connection(conn):
     if conn and db_pool:
         db_pool.putconn(conn)
 
+def init_database():
+    """Initialize the 'data' table if it doesn't exist."""
+    conn = get_db_connection()
+    if not conn:
+        logger.error("Cannot initialize database: No connection")
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'data')")
+            if not cur.fetchone()['exists']:
+                cur.execute("""
+                    CREATE TABLE data (
+                        id SERIAL PRIMARY KEY,
+                        end_year VARCHAR(4),
+                        topic TEXT,
+                        sector TEXT,
+                        region TEXT,
+                        pestle TEXT,
+                        source TEXT,
+                        country TEXT,
+                        intensity INTEGER,
+                        added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        published TIMESTAMP
+                    )
+                """)
+                # Create indexes for performance
+                cur.execute("CREATE INDEX idx_data_end_year ON data(end_year)")
+                cur.execute("CREATE INDEX idx_data_topic ON data(topic)")
+                cur.execute("CREATE INDEX idx_data_sector ON data(sector)")
+                cur.execute("CREATE INDEX idx_data_region ON data(region)")
+                cur.execute("CREATE INDEX idx_data_pestle ON data(pestle)")
+                cur.execute("CREATE INDEX idx_data_source ON data(source)")
+                cur.execute("CREATE INDEX idx_data_country ON data(country)")
+                cur.execute("CREATE INDEX idx_data_intensity ON data(intensity)")
+                conn.commit()
+                logger.info("Created 'data' table and indexes")
+                # Optionally populate with data.json
+                data = load_local_data()
+                if data:
+                    columns = ['end_year', 'topic', 'sector', 'region', 'pestle', 'source', 'country', 'intensity']
+                    values = [tuple(item.get(col, None) for col in columns) for item in data]
+                    query = f"INSERT INTO data ({', '.join(columns)}) VALUES %s"
+                    psycopg2.extras.execute_values(cur, query, values)
+                    conn.commit()
+                    logger.info("Populated 'data' table with JSON data")
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+    finally:
+        release_db_connection(conn)
+
 @app.route('/warmup', methods=['GET'])
 def warmup():
     return jsonify({"status": "warming up"}), 200
@@ -72,6 +126,7 @@ def health():
     return jsonify({"status": status}), 200
 
 @app.route('/api/data', methods=['GET', 'OPTIONS'])
+@cache.cached(timeout=300, query_string=True)  # Cache for 5 minutes
 def get_data():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -118,30 +173,35 @@ def get_data():
                 release_db_connection(conn)
                 return jsonify({"data": load_local_data(), "filters": {}})
 
-            # Execute main query
+            # Execute main query (limit to 1000 rows to prevent memory overload)
+            query += " LIMIT 1000"
             cur.execute(query, params)
             data = cur.fetchall()
 
-            # Fetch filter options in one query
-            cur.execute("""
-                SELECT 
-                    ARRAY_AGG(DISTINCT end_year) AS end_years,
-                    ARRAY_AGG(DISTINCT topic) AS topics,
-                    ARRAY_AGG(DISTINCT sector) AS sectors,
-                    ARRAY_AGG(DISTINCT region) AS regions,
-                    ARRAY_AGG(DISTINCT pestle) AS pestles,
-                    ARRAY_AGG(DISTINCT source) AS sources,
-                    ARRAY_AGG(DISTINCT country) AS countries
-                FROM data
-                WHERE end_year IS NOT NULL
-                  AND topic IS NOT NULL
-                  AND sector IS NOT NULL
-                  AND region IS NOT NULL
-                  AND pestle IS NOT NULL
-                  AND source IS NOT NULL
-                  AND country IS NOT NULL
-            """)
-            filters_data = cur.fetchone()
+            # Fetch filter options (cached separately)
+            @cache.memoize(timeout=3600)  # Cache for 1 hour
+            def get_filters():
+                cur.execute("""
+                    SELECT 
+                        ARRAY_AGG(DISTINCT end_year) AS end_years,
+                        ARRAY_AGG(DISTINCT topic) AS topics,
+                        ARRAY_AGG(DISTINCT sector) AS sectors,
+                        ARRAY_AGG(DISTINCT region) AS regions,
+                        ARRAY_AGG(DISTINCT pestle) AS pestles,
+                        ARRAY_AGG(DISTINCT source) AS sources,
+                        ARRAY_AGG(DISTINCT country) AS countries
+                    FROM data
+                    WHERE end_year IS NOT NULL
+                      AND topic IS NOT NULL
+                      AND sector IS NOT NULL
+                      AND region IS NOT NULL
+                      AND pestle IS NOT NULL
+                      AND source IS NOT NULL
+                      AND country IS NOT NULL
+                """)
+                return cur.fetchone()
+
+            filters_data = get_filters()
 
         release_db_connection(conn)
         return jsonify({
@@ -159,7 +219,7 @@ def get_data():
     except Exception as e:
         logger.error(f"Error fetching data: {str(e)}")
         release_db_connection(conn)
-        return jsonify({"data": load_local_data(), "filters": {}}), 200  # Graceful fallback
+        return jsonify({"data": load_local_data(), "filters": {}}), 200
 
 @app.route('/api/insert', methods=['POST', 'OPTIONS'])
 def insert_data():
@@ -170,13 +230,14 @@ def insert_data():
         new_data = request.get_json()
         if not isinstance(new_data, list):
             return jsonify({"error": "Expected a list of data items"}), 400
+        if len(new_data) > 100:  # Limit batch size to prevent overload
+            return jsonify({"error": "Batch size exceeds 100 items"}), 400
 
         conn = get_db_connection()
         if not conn:
             return jsonify({"error": "Database connection failed"}), 500
 
         with conn.cursor() as cur:
-            # Check if table exists
             cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'data')")
             table_exists = cur.fetchone()['exists']
 
@@ -184,7 +245,6 @@ def insert_data():
                 release_db_connection(conn)
                 return jsonify({"error": "Table 'data' does not exist"}), 500
 
-            # Batch insert
             columns = new_data[0].keys()
             columns_str = ', '.join(columns)
             placeholders = ', '.join(['%s'] * len(columns))
@@ -193,12 +253,16 @@ def insert_data():
             psycopg2.extras.execute_values(cur, query, values)
 
         conn.commit()
+        cache.clear()  # Clear cache to reflect new data
         release_db_connection(conn)
         return jsonify({"message": "Data inserted successfully"})
     except Exception as e:
         logger.error(f"Error inserting data: {str(e)}")
         release_db_connection(conn)
         return jsonify({"error": "Failed to insert data"}), 500
+
+# Initialize database on startup
+init_database()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
