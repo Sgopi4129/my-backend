@@ -5,55 +5,55 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import psycopg2.pool
 
 app = Flask(__name__)
 
-# Configure CORS
-ALLOWED_ORIGINS = os.getenv(
-    'ALLOWED_ORIGINS', 
-    'https://my-dashboard-5gin.vercel.app,http://localhost:3000'
-).split(',')
-
-CORS(
-    app,
-    resources={r"/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Range", "X-Content-Range"],
-        "supports_credentials": True,
-        "max_age": 86400
-    }}
-)
-
-# Configure logging
-logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
+# Configure logging (minimize overhead)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: MOLECULES: %(message)s')
 logger = logging.getLogger(__name__)
 
-# Database connection
+# Configure CORS
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'https://my-dashboard-5gin.vercel.app,http://localhost:3000').split(',')
+CORS(app, resources={r"/*": {
+    "origins": ALLOWED_ORIGINS,
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True
+}})
+
+# Database connection pool
 DATABASE_URL = os.getenv('DATABASE_URL')
+db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, dsn=DATABASE_URL)  # Minimal pool size
+
+# Load local JSON data as fallback (cached to reduce I/O)
 JSON_DATA_PATH = os.getenv('JSON_DATA_PATH', './data.json')
+_local_data_cache = None
+
+def load_local_data():
+    global _local_data_cache
+    if _local_data_cache is None:
+        try:
+            with open(JSON_DATA_PATH, 'r') as f:
+                _local_data_cache = json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading local data: {str(e)}")
+            _local_data_cache = []
+    return _local_data_cache
 
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
+        return db_pool.getconn()
     except Exception as e:
         logger.error(f"Database connection error: {str(e)}")
         return None
 
-# Load local JSON data as fallback
-def load_local_data():
-    try:
-        with open(JSON_DATA_PATH, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading local data: {str(e)}")
-        return []
+def release_db_connection(conn):
+    if conn:
+        db_pool.putconn(conn)
 
 @app.route('/warmup', methods=['GET'])
 def warmup():
-    logger.info(f"Warmup request received: Origin={request.headers.get('Origin')}, Headers={dict(request.headers)}")
     return jsonify({"status": "warming up"}), 200
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
@@ -62,8 +62,7 @@ def health():
         return jsonify({}), 200
     conn = get_db_connection()
     status = "healthy" if conn else "unhealthy"
-    if conn:
-        conn.close()
+    release_db_connection(conn)
     return jsonify({"status": status}), 200
 
 @app.route('/api/data', methods=['GET', 'OPTIONS'])
@@ -86,76 +85,66 @@ def get_data():
     query = "SELECT * FROM data WHERE 1=1"
     params = []
 
-    if filters['end_years']:
-        query += f" AND end_year IN ({','.join(['%s'] * len(filters['end_years']))})"
-        params.extend(filters['end_years'])
-    if filters['topics']:
-        query += f" AND topic IN ({','.join(['%s'] * len(filters['topics']))})"
-        params.extend(filters['topics'])
-    if filters['sectors']:
-        query += f" AND sector IN ({','.join(['%s'] * len(filters['sectors']))})"
-        params.extend(filters['sectors'])
-    if filters['regions']:
-        query += f" AND region IN ({','.join(['%s'] * len(filters['regions']))})"
-        params.extend(filters['regions'])
-    if filters['pestles']:
-        query += f" AND pestle IN ({','.join(['%s'] * len(filters['pestles']))})"
-        params.extend(filters['pestles'])
-    if filters['sources']:
-        query += f" AND source IN ({','.join(['%s'] * len(filters['sources']))})"
-        params.extend(filters['sources'])
-    if filters['countries']:
-        query += f" AND country IN ({','.join(['%s'] * len(filters['countries']))})"
-        params.extend(filters['countries'])
-    if filters['intensity_min'] is not None:
-        query += " AND intensity >= %s"
-        params.append(filters['intensity_min'])
-    if filters['intensity_max'] is not None:
-        query += " AND intensity <= %s"
-        params.append(filters['intensity_max'])
+    # Use parameterized queries for IN clauses to improve performance
+    for key, values in filters.items():
+        if key in ['end_years', 'topics', 'sectors', 'regions', 'pestles', 'sources', 'countries'] and values:
+            query += f" AND {key[:-1]} = ANY(%s)"
+            params.append(values)
+        elif key == 'intensity_min' and values is not None:
+            query += " AND intensity >= %s"
+            params.append(values)
+        elif key == 'intensity_max' and values is not None:
+            query += " AND intensity <= %s"
+            params.append(values)
 
     try:
         conn = get_db_connection()
         if not conn:
-            logger.warning("Falling back to local data due to database connection failure")
-            local_data = load_local_data()
-            return jsonify({"data": local_data, "filters": {}})
+            logger.warning("Falling back to local data")
+            return jsonify({"data": load_local_data(), "filters": {}})
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Execute main query
             cur.execute(query, params)
             data = cur.fetchall()
 
-            # Get filter options
-            cur.execute("SELECT DISTINCT end_year FROM data WHERE end_year IS NOT NULL")
-            end_years = [row['end_year'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT topic FROM data WHERE topic IS NOT NULL")
-            topics = [row['topic'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT sector FROM data WHERE sector IS NOT NULL")
-            sectors = [row['sector'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT region FROM data WHERE region IS NOT NULL")
-            regions = [row['region'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT pestle FROM data WHERE pestle IS NOT NULL")
-            pestles = [row['pestle'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT source FROM data WHERE source IS NOT NULL")
-            sources = [row['source'] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT country FROM data WHERE country IS NOT NULL")
-            countries = [row['country'] for row in cur.fetchall()]
+            # Combine filter queries into a single query to reduce DB round-trips
+            cur.execute("""
+                SELECT 
+                    ARRAY_AGG(DISTINCT end_year) AS end_years,
+                    ARRAY_AGG(DISTINCT topic) AS topics,
+                    ARRAY_AGG(DISTINCT sector) AS sectors,
+                    ARRAY_AGG(DISTINCT region) AS regions,
+                    ARRAY_AGG(DISTINCT pestle) AS pestles,
+                    ARRAY_AGG(DISTINCT source) AS sources,
+                    ARRAY_AGG(DISTINCT country) AS countries
+                FROM data
+                WHERE end_year IS NOT NULL
+                  AND topic IS NOT NULL
+                  AND sector IS NOT NULL
+                  AND region IS NOT NULL
+                  AND pestle IS NOT NULL
+                  AND source IS NOT NULL
+                  AND country IS NOT NULL
+            """)
+            filters_data = cur.fetchone()
 
-        conn.close()
+        release_db_connection(conn)
         return jsonify({
             "data": data,
             "filters": {
-                "end_years": end_years,
-                "topics": topics,
-                "sectors": sectors,
-                "regions": regions,
-                "pestles": pestles,
-                "sources": sources,
-                "countries": countries
+                "end_years": filters_data['end_years'] or [],
+                "topics": filters_data['topics'] or [],
+                "sectors": filters_data['sectors'] or [],
+                "regions": filters_data['regions'] or [],
+                "pestles": filters_data['pestles'] or [],
+                "sources": filters_data['sources'] or [],
+                "countries": filters_data['countries'] or []
             }
         })
     except Exception as e:
         logger.error(f"Error fetching data: {str(e)}")
+        release_db_connection(conn)
         return jsonify({"error": "Failed to fetch data"}), 500
 
 @app.route('/api/insert', methods=['POST', 'OPTIONS'])
@@ -173,17 +162,21 @@ def insert_data():
             return jsonify({"error": "Database connection failed"}), 500
 
         with conn.cursor() as cur:
-            for item in new_data:
-                columns = ', '.join(item.keys())
-                placeholders = ', '.join(['%s'] * len(item))
-                query = f"INSERT INTO data ({columns}) VALUES ({placeholders})"
-                cur.execute(query, list(item.values()))
+            # Batch insert to reduce overhead
+            columns = new_data[0].keys()
+            columns_str = ', '.join(columns)
+            placeholders = ', '.join(['%s'] * len(columns))
+            query = f"INSERT INTO data ({columns_str}) VALUES %s"
+            values = [tuple(item[col] for col in columns) for item in new_data]
+            psycopg2.extras.execute_values(cur, query, values)
+
         conn.commit()
-        conn.close()
+        release_db_connection(conn)
         return jsonify({"message": "Data inserted successfully"})
     except Exception as e:
         logger.error(f"Error inserting data: {str(e)}")
+        release_db_connection(conn)
         return jsonify({"error": "Failed to insert data"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true')
+    app.run(debug=False, host='0.0.0.0', port=5000)
