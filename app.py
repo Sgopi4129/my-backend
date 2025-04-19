@@ -27,8 +27,10 @@ CORS(app, resources={
     r"/*": {
         "origins": allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Cache-Control"],  # Add Cache-Control
-        "supports_credentials": True
+        "allow_headers": ["Content-Type", "Authorization", "Cache-Control"],
+        "supports_credentials": True,
+        "expose_headers": ["Content-Length", "Access-Control-Allow-Origin"],
+        "max_age": 86400  # Cache preflight for 24 hours
     }
 })
 
@@ -37,7 +39,20 @@ logging.info(f"Allowed Origins: {allowed_origins}")
 # Log all incoming requests
 @app.before_request
 def log_request_info():
-    logging.info(f"Requested URL: {request.url}, Method: {request.method}, Origin: {request.headers.get('Origin', 'None')}, Headers: {dict(request.headers)}")
+    logging.info(f"Requested URL: {request.url}, Method: {request.method}, "
+                 f"Origin: {request.headers.get('Origin', 'None')}, "
+                 f"Headers: {dict(request.headers)}")
+
+# Explicit OPTIONS handler for /api/data
+@app.route('/api/data', methods=['OPTIONS'])
+def options_data():
+    logging.info("Handling OPTIONS request for /api/data")
+    response = jsonify({"message": "OPTIONS OK"})
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Cache-Control'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response, 200
 
 # Database configuration
 DB_CONFIG = {
@@ -83,11 +98,9 @@ def parse_int(value):
         return int(value)
     except (ValueError, TypeError):
         logging.warning(f"Invalid integer value: {value}")
-
         return None
 
 def get_db_connection():
-
     try:
         return psycopg2.connect(**DB_CONFIG)
     except Psycopg2Error as e:
@@ -177,8 +190,7 @@ def home():
 
 @app.route('/favicon.ico', methods=['GET'])
 def favicon():
-    return "", 204  # No content response
-
+    return "", 204
 
 @app.route('/debug', methods=['GET'])
 def debug():
@@ -188,26 +200,7 @@ def debug():
         "environment": {k: os.getenv(k) for k in ["LOG_LEVEL", "JSON_DATA_PATH", "FLASK_DEBUG"]}
     }), 200
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@app.route('/warmup', methods=['GET', 'OPTIONS'])  # Explicitly allow OPTIONS
+@app.route('/warmup', methods=['GET', 'OPTIONS'])
 def warmup():
     try:
         response = jsonify({"message": "Backend warmed up"})
@@ -216,27 +209,6 @@ def warmup():
     except Exception as e:
         logging.error(f"Warmup error: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 @app.route('/api/data', methods=['GET'])
 def get_dashboard_data():
@@ -292,23 +264,6 @@ def get_dashboard_data():
                 "pestles": "SELECT DISTINCT pestle FROM insights WHERE pestle IS NOT NULL AND pestle != '' ORDER BY pestle",
                 "sources": "SELECT DISTINCT source FROM insights WHERE source IS NOT NULL AND source != '' ORDER BY source",
                 "countries": "SELECT DISTINCT country FROM insights WHERE country IS NOT NULL AND country != '' ORDER BY country"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             }
             filters_data = {}
             for key, query in filter_queries.items():
@@ -451,7 +406,7 @@ try:
     load_json_data()
 except Exception as e:
     logging.error(f"Startup error: {str(e)}", exc_info=True)
-    raise  # Fail startup if initialization fails
+    raise
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
