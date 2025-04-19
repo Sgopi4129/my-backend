@@ -200,6 +200,22 @@ def debug():
         "environment": {k: os.getenv(k) for k in ["LOG_LEVEL", "JSON_DATA_PATH", "FLASK_DEBUG"]}
     }), 200
 
+
+@app.route('/data', methods=['OPTIONS'])
+def options_data_alt():
+    logging.info("Handling OPTIONS request for /data")
+    response = jsonify({"message": "OPTIONS OK"})
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Cache-Control'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response, 200
+
+@app.route('/data', methods=['GET'])
+def get_dashboard_data_alt():
+    return get_dashboard_data()  # Reuse existing logic
+
+
 @app.route('/warmup', methods=['GET', 'OPTIONS'])
 def warmup():
     try:
