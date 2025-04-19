@@ -53,7 +53,13 @@ def load_local_data():
     if _local_data_cache is None:
         try:
             with open(JSON_DATA_PATH, 'r') as f:
-                _local_data_cache = json.load(f)
+                data = json.load(f)
+                # Validate data structure
+                if not isinstance(data, list):
+                    logger.error("data.json must contain a list")
+                    _local_data_cache = []
+                else:
+                    _local_data_cache = data
         except Exception as e:
             logger.error(f"Error loading local data: {str(e)}")
             _local_data_cache = []
@@ -108,15 +114,24 @@ def init_database():
                 cur.execute("CREATE INDEX idx_data_intensity ON data(intensity)")
                 conn.commit()
                 logger.info("Created 'data' table and indexes")
+
                 # Populate with data.json
                 data = load_local_data()
                 if data:
                     columns = ['end_year', 'topic', 'sector', 'region', 'pestle', 'source', 'country', 'intensity']
-                    values = [tuple(item.get(col, None) for col in columns) for item in data]
-                    query = f"INSERT INTO data ({', '.join(columns)}) VALUES %s"
-                    psycopg2.extras.execute_values(cur, query, values)
-                    conn.commit()
-                    logger.info("Populated 'data' table with JSON data")
+                    values = []
+                    for item in data:
+                        # Ensure item is a dictionary
+                        if not isinstance(item, dict):
+                            logger.warning(f"Skipping invalid item in data.json: {item}")
+                            continue
+                        row = tuple(item.get(col, None) for col in columns)
+                        values.append(row)
+                    if values:
+                        query = f"INSERT INTO data ({', '.join(columns)}) VALUES %s"
+                        psycopg2.extras.execute_values(cur, query, values)
+                        conn.commit()
+                        logger.info(f"Populated 'data' table with {len(values)} rows")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
     finally:
