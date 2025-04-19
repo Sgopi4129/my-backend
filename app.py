@@ -18,7 +18,6 @@ app = Flask(__name__)
 
 # Configure CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "https://my-dashboard-5gin.vercel.app,http://localhost:3000").split(",")
-# Remove any empty or invalid origins
 allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
 if not allowed_origins:
     logging.warning("No valid ALLOWED_ORIGINS provided; defaulting to localhost")
@@ -28,14 +27,14 @@ CORS(app, resources={
     r"/*": {
         "origins": allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
+        "allow_headers": ["Content-Type", "Authorization", "Cache-Control"],  # Add Cache-Control
         "supports_credentials": True
     }
 })
 
 logging.info(f"Allowed Origins: {allowed_origins}")
 
-# Log all incoming requests to diagnose 404 errors
+# Log all incoming requests
 @app.before_request
 def log_request_info():
     logging.info(f"Requested URL: {request.url}, Method: {request.method}, Origin: {request.headers.get('Origin', 'None')}, Headers: {dict(request.headers)}")
@@ -172,13 +171,21 @@ def load_json_data():
 # Routes
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({"message": "Welcome to the API", "endpoints": ["/warmup", "/api/data", "/api/insert", "/api/insights", "/health"]}), 200
+    return jsonify({"message": "Welcome to the API", "endpoints": ["/warmup", "/api/data", "/api/insert", "/api/insights", "/health", "/debug"]}), 200
 
 @app.route('/favicon.ico', methods=['GET'])
 def favicon():
     return "", 204  # No content response
 
-@app.route('/warmup', methods=['GET'])
+@app.route('/debug', methods=['GET'])
+def debug():
+    return jsonify({
+        "allowed_origins": allowed_origins,
+        "db_config": {k: v for k, v in DB_CONFIG.items() if k != "password"},
+        "environment": {k: os.getenv(k) for k in ["LOG_LEVEL", "JSON_DATA_PATH", "FLASK_DEBUG"]}
+    }), 200
+
+@app.route('/warmup', methods=['GET', 'OPTIONS'])  # Explicitly allow OPTIONS
 def warmup():
     try:
         response = jsonify({"message": "Backend warmed up"})
@@ -205,9 +212,9 @@ def get_dashboard_data():
             params = []
             filters = {
                 'end_year': request.args.getlist('end_year'),
-                'topic': request.args.getlist('topic'),
+                'topics': request.args.getlist('topics'),
                 'sector': request.args.getlist('sector'),
-                'region': request.args.getlist('region'),
+                'regions': request.args.getlist('regions'),
                 'pestle': request.args.getlist('pestle'),
                 'source': request.args.getlist('source'),
                 'country': request.args.getlist('country'),
@@ -224,7 +231,9 @@ def get_dashboard_data():
                             logging.warning(f"Invalid {key} value: {values[0]}")
                             return jsonify({"error": f"Invalid {key} value"}), 400
                     else:
-                        query += f" AND {key} = ANY(%s)"
+                        db_key = key if key != 'topics' else 'topic'
+                        db_key = db_key if key != 'regions' else 'region'
+                        query += f" AND {db_key} = ANY(%s)"
                         params.append([v for v in values if v])
             
             cur.execute(query, params)
@@ -319,9 +328,9 @@ def get_insights():
             params = []
             filters = {
                 'end_year': request.args.getlist('end_year'),
-                'topic': request.args.getlist('topic'),
+                'topics': request.args.getlist('topics'),
                 'sector': request.args.getlist('sector'),
-                'region': request.args.getlist('region'),
+                'regions': request.args.getlist('regions'),
                 'pestle': request.args.getlist('pestle'),
                 'source': request.args.getlist('source'),
                 'country': request.args.getlist('country'),
@@ -329,7 +338,9 @@ def get_insights():
             }
             for key, values in filters.items():
                 if values and values[0]:
-                    query += f" AND {key} = ANY(%s)"
+                    db_key = key if key != 'topics' else 'topic'
+                    db_key = db_key if key != 'regions' else 'region'
+                    query += f" AND {db_key} = ANY(%s)"
                     params.append([v for v in values if v])
             
             cur.execute(query, params)
